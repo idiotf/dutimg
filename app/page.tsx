@@ -1,35 +1,34 @@
-import path from 'path'
-import Tar from 'tar-js'
-import projectJSON from '@/app/project.json'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect, useState } from 'react'
+import uploadFile from './upload'
 
 export default function Home() {
+  const [ image, setImage ] = useState<File>()
+  const [ imageSrc, setImageSrc ] = useState<string>()
+
+  function changeImage({ currentTarget: { files } }: React.ChangeEvent<HTMLInputElement>) {
+    if (files) setImage(files[0])
+  }
+
+  useEffect(() => {
+    if (!image) return setImageSrc(void 0)
+    const imageSrc = URL.createObjectURL(image)
+    setImageSrc(imageSrc)
+    return () => URL.revokeObjectURL(imageSrc)
+  }, [ image ])
+
   return (
     <div className='text-center'>
       <h1 className='my-8 text-4xl min-[550px]:text-5xl font-semibold text-black dark:text-white'>DutImg</h1>
       <p>엔트리 작품에서 이미지를 공유하는 또다른 방법</p>
       <hr className='mx-5 my-10 border-gray-200 dark:border-gray-800' />
       <h2 className='my-6 text-4xl font-medium'>업로드하기</h2>
-      <form className='inline-block mx-auto' action={async (formData: FormData) => {
-        'use server'
-
-        const tar = new Tar
-        const encoder = new TextEncoder
-        const file = formData.get('file')
-        if (typeof file == 'string' || file == null || file.name == 'project.json') return
-        tar.append(String.fromCharCode(...encoder.encode(path.join('temp', file.name))), new Uint8Array(await file.arrayBuffer()))
-
-        const body = new FormData
-        body.set('projects', new Blob([ tar.append('temp/project.json', JSON.stringify(projectJSON)) ], { type: 'application/x-entryapp' }))
-        await fetch('https://playentry.org/rest/project/upload', {
-          method: 'POST',
-          body,
-        })
-        redirect(new URL(file.name, 'https://playentry.org//uploads/').toString())
-      }}>
-        <input type='file' name='file' multiple className='file:px-2 file:py-1 file:cursor-pointer file:bg-blue-500 file:text-white file:rounded-full' />
+      <form className='inline-block mx-auto' action={uploadFile}>
+        <input type='file' name='file' multiple onChange={changeImage} className='file:px-2 file:py-1 file:cursor-pointer file:bg-blue-500 file:text-white file:rounded-full' />
         <button type='submit' className='px-2 py-1 cursor-pointer bg-blue-500 text-white rounded-full'>업로드</button>
         <p className='font-bold text-red-500 my-4'>주의: 엔트리 기술적 한계로 인해 업로드한 이미지는 영구히 삭제·수정할 수 없습니다.</p>
+        <img src={imageSrc} className='mx-auto max-w-full max-h-50' alt='' /> {/* eslint-disable-line @next/next/no-img-element */}
       </form>
       <small className='block pl-4'>
         <ul className='inline-block list-disc text-left m-auto'>
