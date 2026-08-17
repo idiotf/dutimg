@@ -2,7 +2,7 @@ import Tar from 'tar-js'
 
 const uploadStatusError: { [k: number]: string; default: string } = {
   409: '이미 존재하는 업로드 이름입니다.',
-  413: '용량이 너무 큽니다.',
+  413: '용량이 너무 큽니다. 50MiB 미만으로 줄여주세요.',
   429: '업로드 횟수가 너무 많습니다.',
   default: '업로드를 실패했습니다.',
 }
@@ -26,6 +26,7 @@ function encodeFilepath(filepath: string) {
 }
 
 export async function uploadFile(file: File) {
+  if (file.size >= 50 * 1024 * 1024) throw uploadStatusError[413]
   await checkUploadStatus(file.name)
 
   const tar = new Tar()
@@ -40,7 +41,7 @@ export async function uploadFile(file: File) {
   const body = new FormData()
   body.set('projects', projectBlob)
 
-  await fetch('https://playentry.org/rest/project/upload', {
+  await fetch('https://entry-cdn.pstatic.net/rest/project/upload', {
     method: 'POST',
     body,
     mode: 'no-cors',
