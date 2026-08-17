@@ -1,10 +1,8 @@
 import type { NextConfig } from 'next'
 
-export default {
+const nextConfig: NextConfig = {
   poweredByHeader: false,
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '4gb',
-    },
-  },
-} satisfies NextConfig
+  allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS?.split(','),
+}
+
+export default nextConfig

@@ -1,22 +1,51 @@
-'use server'
-
-import path from 'path'
 import Tar from 'tar-js'
-import projectJSON from '@/app/project.json'
-import { redirect } from 'next/navigation'
 
-export default async function uploadFile(formData: FormData) {
-  const tar = new Tar
-  const encoder = new TextEncoder
-  const file = formData.get('file')
-  if (typeof file == 'string' || file == null || file.name == 'project.json') return
-  tar.append(String.fromCharCode(...encoder.encode(path.join('temp', file.name))), new Uint8Array(await file.arrayBuffer()))
+const uploadStatusError: { [k: number]: string; default: string } = {
+  409: '이미 존재하는 업로드 이름입니다.',
+  413: '용량이 너무 큽니다.',
+  429: '업로드 횟수가 너무 많습니다.',
+  default: '업로드를 실패했습니다.',
+}
 
-  const body = new FormData
-  body.set('projects', new Blob([ tar.append('temp/project.json', JSON.stringify(projectJSON)) ], { type: 'application/x-entryapp' }))
+async function checkUploadStatus(name: string, size?: number) {
+  const query = new URLSearchParams()
+  query.set('path', name)
+  if (size !== undefined) query.set('length', String(size))
+
+  const { status } = await fetch('/api/upload-status?' + query, {
+    method: 'HEAD',
+  })
+  if (status != 200) {
+    throw uploadStatusError[status] || uploadStatusError.default
+  }
+}
+
+function encodeFilepath(filepath: string) {
+  const encoder = new TextEncoder()
+  return String.fromCharCode(...encoder.encode(filepath))
+}
+
+export async function uploadFile(file: File) {
+  await checkUploadStatus(file.name)
+
+  const tar = new Tar()
+  tar.append(
+    encodeFilepath('temp/' + file.name),
+    new Uint8Array(await file.arrayBuffer())
+  )
+
+  const tarData = tar.append('temp/project.json', '0')
+  const projectBlob = new Blob([tarData as Uint8Array<ArrayBuffer>])
+
+  const body = new FormData()
+  body.set('projects', projectBlob)
+
   await fetch('https://playentry.org/rest/project/upload', {
     method: 'POST',
     body,
+    mode: 'no-cors',
   })
-  redirect(new URL(file.name, 'https://playentry.org//uploads/').toString())
+
+  await checkUploadStatus(file.name, file.size)
+  return 'https://playentry.org/%2Fuploads/' + encodeURIComponent(file.name)
 }
