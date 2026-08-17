@@ -57,6 +57,7 @@ export default function Home() {
         <input
           type='file'
           name='file'
+          accept='.jpg, .png, .bmp, .svg, .mp3'
           onChange={changeImage}
           className='file:px-2 file:py-1 file:cursor-pointer file:bg-blue-500 file:text-white file:rounded-full'
         />

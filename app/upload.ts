@@ -48,5 +48,5 @@ export async function uploadFile(file: File) {
   })
 
   await checkUploadStatus(file.name, file.size)
-  return 'https://playentry.org/%2Fuploads/' + encodeURIComponent(file.name)
+  return 'https://playentry.org/.%2Fuploads/' + encodeURIComponent(file.name)
 }
