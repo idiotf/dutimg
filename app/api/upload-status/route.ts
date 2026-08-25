@@ -21,9 +21,11 @@ async function checkUploaded(path: string, length: string) {
   )
 
   if (status == 200) {
-    const actualLength = headers.get('content-length')
-    if (actualLength === null) return 404
-    if (actualLength != length) return 409
+    if (length) {
+      const actualLength = headers.get('content-length')
+      if (actualLength === null) return 404
+      if (actualLength != length) return 409
+    }
   } else {
     return status
   }
