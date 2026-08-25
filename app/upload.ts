@@ -7,10 +7,10 @@ const uploadStatusError: { [k: number]: string; default: string } = {
   default: '업로드를 실패했습니다.',
 }
 
-async function checkUploadStatus(name: string, size?: number) {
+async function checkUploadStatus(name: string, size?: number | null) {
   const query = new URLSearchParams()
   query.set('path', name)
-  if (size !== undefined) query.set('length', String(size))
+  if (size !== undefined) query.set('length', size === null ? '' : String(size))
 
   const { status } = await fetch('/api/upload-status?' + query, {
     method: 'HEAD',
@@ -47,6 +47,6 @@ export async function uploadFile(file: File) {
     mode: 'no-cors',
   })
 
-  await checkUploadStatus(file.name, file.size)
+  await checkUploadStatus(file.name, file.type == 'image/svg' ? null : file.size)
   return 'https://playentry.org/.%2Fuploads/' + encodeURIComponent(file.name)
 }
