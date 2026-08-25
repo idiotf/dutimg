@@ -47,6 +47,6 @@ export async function uploadFile(file: File) {
     mode: 'no-cors',
   })
 
-  await checkUploadStatus(file.name, file.type == 'image/svg' ? null : file.size)
+  await checkUploadStatus(file.name, file.type == 'image/svg+xml' ? null : file.size)
   return 'https://playentry.org/.%2Fuploads/' + encodeURIComponent(file.name)
 }
