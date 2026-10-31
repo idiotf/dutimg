@@ -1,6 +1,12 @@
 import Tar from 'tar-js'
 
-const uploadStatusError: { [k: number]: string; default: string } = {
+interface UploadStatusErrorMap {
+  [k: number]: string
+  default: string
+}
+
+const uploadStatusError: UploadStatusErrorMap = {
+  400: '업로드 이름이 올바르지 않습니다.',
   409: '이미 존재하는 업로드 이름입니다.',
   413: '용량이 너무 큽니다. 50MiB 미만으로 줄여주세요.',
   429: '업로드 횟수가 너무 많습니다.',
@@ -10,12 +16,15 @@ const uploadStatusError: { [k: number]: string; default: string } = {
 async function checkUploadStatus(name: string, size?: number | null) {
   const query = new URLSearchParams()
   query.set('path', name)
-  if (size !== undefined) query.set('length', size === null ? '' : String(size))
+  if (size !== undefined) {
+    query.set('length', size === null ? '' : String(size))
+  }
 
-  const { status } = await fetch('/api/upload-status?' + query, {
+  const { status } = await fetch(`/api/upload-status?${query}`, {
     method: 'HEAD',
   })
-  if (status != 200) {
+
+  if (status !== 200) {
     throw uploadStatusError[status] || uploadStatusError.default
   }
 }
@@ -26,13 +35,15 @@ function encodeFilepath(filepath: string) {
 }
 
 export async function uploadFile(file: File) {
-  if (file.size >= 50 * 1024 * 1024) throw uploadStatusError[413]
+  if (file.size >= 50 * 1024 * 1024) {
+    throw uploadStatusError[413]
+  }
   await checkUploadStatus(file.name)
 
   const tar = new Tar()
   tar.append(
-    encodeFilepath('temp/' + file.name),
-    new Uint8Array(await file.arrayBuffer())
+    encodeFilepath(`temp/${file.name}`),
+    new Uint8Array(await file.arrayBuffer()),
   )
 
   const tarData = tar.append('temp/project.json', '0')
@@ -47,6 +58,10 @@ export async function uploadFile(file: File) {
     mode: 'no-cors',
   })
 
-  await checkUploadStatus(file.name, file.type == 'image/svg+xml' ? null : file.size)
-  return 'https://playentry.org/.%2Fuploads/' + encodeURIComponent(file.name)
+  await checkUploadStatus(
+    file.name,
+    file.type === 'image/svg+xml' ? null : file.size,
+  )
+
+  return `https://space.playentry.org/uploads/${file.name}`
 }
